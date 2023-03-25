@@ -220,7 +220,7 @@ class FlashUtil:
 		zipfile.ZipFile(archivePath, 'r').extractall(f'{self.__scriptDir}/adb')
 		
 		if not platform == 'win32':
-			os.chmod(f'{self.__scriptDir}/adb/platform-tool/fastboot', 755)
+			os.chmod(f'{self.__scriptDir}/adb/platform-tools/fastboot', 755)
 
 # Util function to die with error
 def die(msg='', code=1):
