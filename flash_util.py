@@ -217,9 +217,8 @@ class FlashUtil:
 		if not os.path.isfile(archivePath):
 			die("Can't find adb for your system.")
 
-		with zipfile.ZipFile(archivePath, 'r') as zip_ref:
-			zip_ref.extractall(f'{self.__scriptDir}/adb')
-
+		zipfile.ZipFile(archivePath, 'r').extractall(f'{self.__scriptDir}/adb')
+		
 		if not platform == 'win32':
 			os.chmod(f'{self.__scriptDir}/adb/platform-tool/fastboot', 755)
 
