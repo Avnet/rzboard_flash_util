@@ -162,7 +162,7 @@ class FlashUtil:
 		
 		# Set static ip or attempt to get ip from dhcp
 		if self.__args.staticIP:
-			self.__writeSerialCmd('\rsetenv ipaddr {self.__args.staticIP}')
+			self.__writeSerialCmd(f'\rsetenv ipaddr {self.__args.staticIP}')
 			time.sleep(1)
 		else:
 			print('Waiting for device to be assigned IP address...')
