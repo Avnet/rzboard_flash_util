@@ -1,6 +1,6 @@
 # RZBoard Flash Utility
 
-This is a platform agnostic utility used to flash the RZBoard. It can be used to flash the eMMC with, both, the bootloaders and system image.
+This is a platform agnostic utility used to flash the [RZBoard](https://www.avnet.com/wps/portal/us/products/avnet-boards/avnet-board-families/rzboard-v2l/). It can be used to flash the eMMC with both the bootloader(s) and system image.
 
 ## Install Python
 
@@ -8,7 +8,7 @@ This utility is written in python3 with dependencies managed using pip.
 
 ### Ubuntu Installation
 
-If runnng Ubuntu, these can be installed by running the following:
+On Ubuntu, python3 and pip can be installed by running:
 ```bash
 sudo apt install -y python3 python3-pip
 ```
@@ -17,11 +17,13 @@ sudo apt install -y python3 python3-pip
 
 Mac and Windows can install by using one of the manage package managers for your platform or by downloading an installer from [https://www.python.org/downloads/](https://www.python.org/downloads/).
 
-## Dependencies
-
-The script has a couple dependencies. These can be installed by running the following:
+## Clone & Install Dependencies
 ```bash
 git clone https://github.com/erstoddard/rzboard_flash_util.git
+```
+
+The script has a couple dependencies that can be installed by running the following:
+```bash
 cd rzboard_flash_util
 pip3 install -r requirements.txt
 ```
