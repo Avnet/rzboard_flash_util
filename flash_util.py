@@ -162,18 +162,20 @@ class FlashUtil:
 		
 		# Set static ip or attempt to get ip from dhcp
 		if self.__args.staticIP:
+			print(f'Setting static IP: {self.__args.staticIP}')
 			self.__writeSerialCmd(f'\rsetenv ipaddr {self.__args.staticIP}')
-			time.sleep(1)
 		else:
 			print('Waiting for device to be assigned IP address...')
 			self.__writeSerialCmd('\rsetenv autoload no; dhcp')
 			self.__serialPort.read_until('DHCP client bound'.encode())
-			time.sleep(1)
 			
+		time.sleep(1)
+
 		# Put device into fastboot mode
 		print('Putting device into fastboot mode')
 		self.__writeSerialCmd('\rfastboot udp')
 		self.__serialPort.read_until('Listening for fastboot command on '.encode())
+		print('Device in fastboot mode')
 		self.__deviceIPAddr = self.__serialPort.readline().decode().replace('\n', '').replace('\r', '')
 		
 		# Run fastboot
