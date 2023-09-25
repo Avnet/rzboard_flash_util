@@ -19,7 +19,7 @@ Mac and Windows can install by using one of the manage package managers for your
 
 ## Clone & Install Dependencies
 ```bash
-git clone https://github.com/erstoddard/rzboard_flash_util.git
+git clone https://github.com/Avnet/rzboard_flash_util.git
 ```
 
 The script has a couple dependencies that can be installed by running the following:
