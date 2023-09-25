@@ -60,6 +60,6 @@ By default, the utility looks for the required images in the directory that `fla
 | Flash Image Writer | `--image_writer` | `<SCRIPT_DIR>/Flash_Writer_SCIF_rzboard.mot` | Application loaded in to received bootloader images over serial and write to eMMC |
 | BL2 Image | `--image_bl2` | `<SCRIPT_DIR>/bl2_bp-rzboard.srec` | Bootloader |
 | FIP Image | `--image_fip` | `<SCRIPT_DIR>/fip-rzboard.srec` | Bootloader, ARM TFA (Trusted Firmware-A) BL31, and u-boot in a combined image |
-| System Image | `--image_rootfs` | `<SCRIPT_DIR>/avnet-core-image-rzboard.wic` | Contains the linux kernel, device tree (dtb), and to root filesystem (rootfs) in a minimized format. |
+| System Image | `--image_rootfs` | `<SCRIPT_DIR>/avnet-core-image-rzboard.wic` | Contains the linux kernel, device tree (dtb), and root filesystem (rootfs) in a minimized format. |
 
 **NOTE:** If only flashing the system image, the image writer, bl2, and FIP images are not required/
