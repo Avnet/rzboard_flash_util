@@ -37,7 +37,7 @@ Running `./flash_util.py -h` will print usage information.  A more detailed desc
 The utility can be used to flash the bootloader, rootfs, or both at the same time:
 
 ```bash
-./flash_util.py --bootloader # Flash bootloader only
+./flash_util.py --bootloader # Flash bootloader (includes flash image writer, BL2 image writer, FIP image)
 ./flash_util.py --rootfs     # Flash system image only
 ./flash_util.py --full       # Flash bootloader and system image
 ```
