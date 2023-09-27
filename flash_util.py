@@ -261,8 +261,7 @@ class FlashUtil:
 
         # Run fastboot
         with Popen(
-            f"{self.__script_dir}/adb/platform-tools/fastboot" \
-            f"-s udp:{self.__device_ip_address} -v flash rawimg {self.__args.rootfsImage}",
+            f"{self.__script_dir}/adb/platform-tools/fastboot -s udp:{self.__device_ip_address} -v flash rawimg {self.__args.rootfsImage}",
             shell=True,
             stdout=PIPE,
             bufsize=1,
