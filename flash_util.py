@@ -1,31 +1,39 @@
 #!/usr/bin/python3
+"""Platform agnostic utility to flash Avnet RZBoard V2L."""
 
 # Imports
 import argparse
 import os
+import sys
 import time
 import zipfile
 from subprocess import PIPE, Popen
-from sys import platform
 
 import serial
 
 
 class FlashUtil:
+    """
+    A utility class for flashing an Avnet RZBoard with a bootloader and/or rootfs image.
+
+    Usage:
+    - Instantiate the class to parse command line arguments and flash the specified image(s).
+    """
+
     def __init__(self):
         self.__script_dir = os.getcwd()
         self.__setup_argument_parser()
 
         if self.__args.bootloader:
             self.__setup_serial_port()
-            self.__write_bootloader()
+            self.write_bootloader()
         elif self.__args.rootfs:
             self.__setup_serial_port()
-            self.__write_system_image()
+            self.write_system_image()
         elif self.__args.full:
             self.__setup_serial_port()
-            self.__write_bootloader()
-            self.__write_system_image()
+            self.write_bootloader()
+            self.write_system_image()
         else:
             self.__parser.error(
                 "Please specify which image(s) to flash.\n\nExamples:\n\t"
@@ -140,7 +148,9 @@ class FlashUtil:
             die(msg="Unable to open serial port.")
 
     # Function to write bootloader
-    def __write_bootloader(self):
+    def write_bootloader(self):
+        """Write bootloader (flashWriter, bl2, fip images) to board."""
+
         # Check for files
         if not os.path.isfile(self.__args.flashWriterImage):
             die("Can't find flash writer image.")
@@ -157,7 +167,7 @@ class FlashUtil:
 
         # Write flash writer application
         print("Writing Flash Writer application.")
-        self.__write_file_to_serial(self.__args.flashWriterImage)
+        self.write_file_to_serial(self.__args.flashWriterImage)
 
         # pylint: disable=locally-disabled, fixme
         # TODO: Wait for '>' instead of just time based.
@@ -181,7 +191,7 @@ class FlashUtil:
 
         time.sleep(2)
         print("Writing bl2 image.")
-        self.__write_file_to_serial(self.__args.bl2Image)
+        self.write_file_to_serial(self.__args.bl2Image)
 
         time.sleep(2)
         self.__serial_port.write("\rEM_W\r".encode())
@@ -197,7 +207,7 @@ class FlashUtil:
 
         time.sleep(2)
         print("Writing FIP image.")
-        self.__write_file_to_serial(self.__args.fipImage)
+        self.write_file_to_serial(self.__args.fipImage)
 
         time.sleep(2)
         self.__serial_port.write("\rEM_SECSD\r".encode())
@@ -218,7 +228,8 @@ class FlashUtil:
         self.__serial_port.write("8\r".encode())
 
     # Function to write system image over fastboot
-    def __write_system_image(self):
+    def write_system_image(self):
+        """Write system image (containing kernel, dtb, and rootfs) to board.)"""
         # Check for system image
         if self.__args.rootfsImage is None:
             die("No rootfsImage argument")
@@ -234,7 +245,7 @@ class FlashUtil:
 
         # Interrupt boot sequence
         self.__serial_port.read_until("Hit any key to stop autoboot:".encode())
-        self.__write_serial_cmd("y")
+        self.write_serial_cmd("y")
 
         # Wait a bit
         time.sleep(1)
@@ -242,26 +253,29 @@ class FlashUtil:
         # Set static ip or attempt to get ip from dhcp
         if self.__args.staticIP:
             print(f"Setting static IP: {self.__args.staticIP}")
-            self.__write_serial_cmd(f"\rsetenv ipaddr {self.__args.staticIP}")
+            self.write_serial_cmd(f"\rsetenv ipaddr {self.__args.staticIP}")
         else:
             print("Waiting for device to be assigned IP address...")
-            self.__write_serial_cmd("\rsetenv autoload no; dhcp")
+            self.write_serial_cmd("\rsetenv autoload no; dhcp")
             self.__serial_port.read_until("DHCP client bound".encode())
 
         time.sleep(1)
 
         # Put device into fastboot mode
         print("Putting device into fastboot mode")
-        self.__write_serial_cmd("\rfastboot udp")
+        self.write_serial_cmd("\rfastboot udp")
         self.__serial_port.read_until("Listening for fastboot command on ".encode())
         print("Device in fastboot mode")
         self.__device_ip_address = (
             self.__serial_port.readline().decode().replace("\n", "").replace("\r", "")
         )
 
-        # Run fastboot
+        fastboot_path = f"{self.__script_dir}/adb/platform-tools/fastboot"
+        fastboot_args = (
+            f"-s udp:{self.__device_ip_address} " f"-v flash rawimg {self.__args.rootfsImage}"
+        )
         with Popen(
-            f"{self.__script_dir}/adb/platform-tools/fastboot -s udp:{self.__device_ip_address} -v flash rawimg {self.__args.rootfsImage}",
+            fastboot_path + " " + fastboot_args,
             shell=True,
             stdout=PIPE,
             bufsize=1,
@@ -273,59 +287,86 @@ class FlashUtil:
         if fastboot_process.returncode != 0:
             die("Failed to flash rootfs.")
 
-    def __write_serial_cmd(self, cmd):
+    def write_serial_cmd(self, cmd):
+        """
+        Writes a command to the serial port.
+
+        Args:
+            cmd (str): The command to write to the serial port.
+
+        Returns:
+            None
+        """
         self.__serial_port.write(f"{cmd}\r".encode())
 
     # Function to write file over serial
-    def __write_file_to_serial(self, file):
+    def write_file_to_serial(self, file):
+        """
+        Writes the contents of a file to the serial port.
+
+        Args:
+            file (str): The path to the file to be written.
+
+        Returns:
+            None
+        """
         with open(file, "rb") as transmit_file:
             self.__serial_port.write(transmit_file.read())
             transmit_file.close()
 
-    # Function to wait and print contents of serial buffer
-    def __serial_read(self, cond="\n", print_buffer=False):
-        # pylint: disable=locally-disabled, unused-private-member
+    def serial_read(self, cond="\n", print_buffer=False):
+        """
+        Reads data from the serial port until the specified condition is met.
+
+        Args:
+            cond (str): The condition to wait for before returning the data.
+                Defaults to newline character.
+            print_buffer (bool): Whether to print the read data to the console. Defaults to False.
+
+        Returns:
+            bytes: The data read from the serial port.
+        """
         buf = self.__serial_port.read_until(cond.encode())
 
         if print_buffer:
             print(f"{buf.decode()}")
+
+        return buf
 
     # Function to check and extract adb
     def __extract_adb(self):
         # Extract platform tools if not already extracted
         if not os.path.exists(f"{self.__script_dir}/platform-tools"):
             archive_path = ""
-            if platform == "linux":
-                archive_path = (
-                    f"{self.__script_dir}/adb/platform-tools-latest-linux.zip"
-                )
-            elif platform == "darwin":
-                archive_path = (
-                    f"{self.__script_dir}/adb/platform-tools-latest-darwin.zip"
-                )
-            elif platform == "win32":
-                archive_path = (
-                    f"{self.__script_dir}/adb/platform-tools-latest-windows.zip"
-                )
+            if sys.platform == "linux":
+                archive_path = f"{self.__script_dir}/adb/platform-tools-latest-linux.zip"
+            elif sys.platform == "darwin":
+                archive_path = f"{self.__script_dir}/adb/platform-tools-latest-darwin.zip"
+            elif sys.platform == "win32":
+                archive_path = f"{self.__script_dir}/adb/platform-tools-latest-windows.zip"
             else:
                 die("Unknown platform.")
 
         if not os.path.isfile(archive_path):
             die("Can't find adb for your system.")
 
-        zipfile.ZipFile(archive_path, "r").extractall(f"{self.__script_dir}/adb")
+        with zipfile.ZipFile(archive_path, "r") as zip_ref:
+            zip_ref.extractall(f"{self.__script_dir}/adb")
 
-        if platform != "win32":
+        if sys.platform != "win32":
             os.chmod(f"{self.__script_dir}/adb/platform-tools/fastboot", 755)
 
 
-# Util function to die with error
 def die(msg="", code=1):
+    """
+    Prints an error message and exits the program with the given exit code.
+    """
     print(f"Error: {msg}")
-    exit(code)
+    sys.exit(code)
 
 
 def main():
+    """Construct FlashUtil, beginning the flashing process."""
     FlashUtil()
 
 
