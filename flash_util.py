@@ -145,7 +145,10 @@ class FlashUtil:
                 port=self.__args.serialPort, baudrate=self.__args.baudRate
             )
         except:
-            die(msg="Unable to open serial port.")
+            die(
+                msg="Unable to open serial port. "
+                "Do you have sufficient permissions? Is your device connected?"
+            )
 
     # Function to write bootloader
     def write_bootloader(self):
