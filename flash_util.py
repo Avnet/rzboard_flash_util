@@ -11,6 +11,11 @@ from subprocess import PIPE, Popen
 
 import serial
 
+FLASH_WRITER_FILE_DEFAULT = "Flash_Writer_SCIF_rzboard.mot"
+BL2_FILE_DEFAULT = "bl2_bp-rzboard.srec"
+FIP_FILE_DEFAULT = "fip-rzboard.srec"
+CORE_IMAGE_FILE_DEFAULT = "avnet-core-image-rzboard.wic"
+
 
 class FlashUtil:
     """
@@ -94,36 +99,44 @@ class FlashUtil:
         # Images
         self.__parser.add_argument(
             "--image_writer",
-            default=f"{self.__script_dir}/Flash_Writer_SCIF_rzboard.mot",
+            default=f"{self.__script_dir}/{FLASH_WRITER_FILE_DEFAULT}",
             dest="flashWriterImage",
             action="store",
             type=str,
             help="Path to Flash Writer image"
-            "(defaults to: <SCRIPT_DIR>/Flash_Writer_SCIF_rzboard.mot).",
+            f"(defaults to: <SCRIPT_DIR>/{FLASH_WRITER_FILE_DEFAULT}).",
         )
         self.__parser.add_argument(
             "--image_bl2",
-            default=f"{self.__script_dir}/bl2_bp-rzboard.srec",
+            default=f"{self.__script_dir}/{BL2_FILE_DEFAULT}",
             dest="bl2Image",
             action="store",
             type=str,
-            help="Path to bl2 image (defaults to: <SCRIPT_DIR>/bl2_bp-rzboard.srec).",
+            help=f"Path to bl2 image (defaults to: <SCRIPT_DIR>/{BL2_FILE_DEFAULT}).",
         )
         self.__parser.add_argument(
             "--image_fip",
-            default=f"{self.__script_dir}/fip-rzboard.srec",
+            default=f"{self.__script_dir}/{FIP_FILE_DEFAULT}",
             dest="fipImage",
             action="store",
             type=str,
-            help="Path to FIP image (defaults to: <SCRIPT_DIR>/fip-rzboard.srec).",
+            help=f"Path to FIP image (defaults to: <SCRIPT_DIR>/{FIP_FILE_DEFAULT}).",
         )
         self.__parser.add_argument(
             "--image_rootfs",
-            default=f"{self.__script_dir}/avnet-core-image-rzboard.wic",
+            default=f"{self.__script_dir}/{CORE_IMAGE_FILE_DEFAULT}",
             dest="rootfsImage",
             action="store",
             type=str,
-            help="Path to rootfs (defaults to: <SCRIPT_DIR>/avnet-core-image-rzboard.wic).",
+            help=f"Path to rootfs (defaults to: <SCRIPT_DIR>/{CORE_IMAGE_FILE_DEFAULT}).",
+        )
+        self.__parser.add_argument(
+            "--image_path",
+            dest="image_path",
+            action="store",
+            type=str,
+            help="Absolute path to images dir" \
+                 "(used only with --bootloader, --rootfs, or --full to overwrite <SCRIPT_DIR>).",
         )
 
         # Networking
@@ -136,6 +149,13 @@ class FlashUtil:
         )
 
         self.__args = self.__parser.parse_args()
+
+        if self.__args.image_path:
+            print(f"Overwriting default image paths with {self.__args.image_path}.")
+            self.__args.flashWriterImage = f"{self.__args.image_path}/{FLASH_WRITER_FILE_DEFAULT}"
+            self.__args.bl2Image = f"{self.__args.image_path}/{BL2_FILE_DEFAULT}"
+            self.__args.fipImage = f"{self.__args.image_path}/{FIP_FILE_DEFAULT}"
+            self.__args.rootfsImage = f"{self.__args.image_path}/{CORE_IMAGE_FILE_DEFAULT}"
 
     # Setup Serial Port
     def __setup_serial_port(self):
