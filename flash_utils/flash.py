@@ -176,13 +176,13 @@ class FlashUtil:
 
         # Check for files
         if not os.path.isfile(self.__args.flashWriterImage):
-            die("Can't find flash writer image.")
+            die(f"Missing flash writer image: {self.__args.flashWriterImage}")
 
         if not os.path.isfile(self.__args.bl2Image):
-            die("Can't find bl2 image.")
+            die(f"Missing bl2 image: {self.__args.bl2Image}")
 
         if not os.path.isfile(self.__args.fipImage):
-            die("Can't find FIP image.")
+            die(f"Missing FIP image: {self.__args.fipImage}")
 
         # Wait for device to be ready to receive image.
         print("Please power on board. Make sure boot2 is strapped.")
@@ -258,7 +258,7 @@ class FlashUtil:
             die("No rootfsImage argument")
 
         if not os.path.isfile(self.__args.rootfsImage):
-            die("Can't find system image.")
+            die(f"Missing system image: {self.__args.rootfsImage}")
 
         # Extract ADB tools
         self.__extract_adb()
@@ -384,14 +384,5 @@ def die(msg="", code=1):
     """
     Prints an error message and exits the program with the given exit code.
     """
-    print(f"Error: {msg}")
+    print(f"Error: {msg}", file=sys.stderr)
     sys.exit(code)
-
-
-def main():
-    """Construct FlashUtil, beginning the flashing process."""
-    FlashUtil()
-
-
-if __name__ == "__main__":
-    main()
