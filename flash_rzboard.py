@@ -1,4 +1,4 @@
-# !/usr/bin/python3
+#!/usr/bin/python3
 """Platform agnostic utility to flash Avnet RZBoard V2L."""
 
 from flash_utils.flash import FlashUtil

@@ -30,16 +30,16 @@ pip3 install -r requirements.txt
 
 ## Usage
 
-Running `./flash_util.py -h` will print usage information.  A more detailed description of the arguments is detailed below.
+Running `./flash_rzboard.py -h` will print usage information.  A more detailed description of the arguments is detailed below.
 
 ### Specifying What to Flash
 
 The utility can be used to flash the bootloader, rootfs, or both at the same time:
 
 ```bash
-./flash_util.py --bootloader # Flash bootloader (includes flash image writer, BL2 image writer, FIP image)
-./flash_util.py --rootfs     # Flash system image only
-./flash_util.py --full       # Flash bootloader and system image
+./flash_rzboard.py --bootloader # Flash bootloader (includes flash image writer, BL2 image writer, FIP image)
+./flash_rzboard.py --rootfs     # Flash system image only
+./flash_rzboard.py --full       # Flash bootloader and system image
 ```
 
 ### Options
@@ -48,12 +48,12 @@ The utility can be used to flash the bootloader, rootfs, or both at the same tim
 By default, the utility uses `/dev/ttyUSB0` as the serial port to communicate with the RZBoard. This can be changed with `--serial_port`.  Additionally the default baud rate of `115200` can be chaged with `--serial_port_baud`:
 
 ```bash
-./flash_util --serial_port DESIRED_SERIAL_PORT --serial_port_baud DESIRED_BAUD_RATE
+./flash_rzboard --serial_port DESIRED_SERIAL_PORT --serial_port_baud DESIRED_BAUD_RATE
 ```
 
 #### Image Locations
 
-By default, the utility looks for the required images in the directory that `flash_util.py` is located. The required images, along with the override flag and default location and name is listed below:
+By default, the utility looks for the required images in the directory that `flash_rzboard.py` is located. The required images, along with the override flag and default location and name is listed below:
 
 | Image | Flag | Default | Description |
 |-|-|-|-|
