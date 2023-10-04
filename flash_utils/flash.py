@@ -135,8 +135,8 @@ class FlashUtil:
             dest="image_path",
             action="store",
             type=str,
-            help="Absolute path to images dir" \
-                 "(used only with --bootloader, --rootfs, or --full to overwrite <SCRIPT_DIR>).",
+            help="Absolute path to images dir"
+            "(used only with --bootloader, --rootfs, or --full to overwrite <SCRIPT_DIR>).",
         )
 
         # Networking
