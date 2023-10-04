@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from flash_utils.flash import FlashUtil
+from flash_utils.flash import CORE_IMAGE_FILE_DEFAULT, FlashUtil
 
 
 @pytest.fixture(name="mock_serial_port")
@@ -17,6 +17,35 @@ def fixture_serial_port(monkeypatch):
     serial_mock = Mock()
     monkeypatch.setattr("flash_utils.flash.serial.Serial", serial_mock)
     return serial_mock
+
+
+@pytest.fixture(name="mock_popen")
+def fixture_popen(monkeypatch):
+    """Mock the subprocess.Popen call for testing"""
+
+    # pylint: disable-next=too-few-public-methods
+    class ContextBundle:
+        """Mock the subprocess.Popen context manager return value"""
+        def __init__(self, code, stdout):
+            self.returncode = code
+            self.stdout = stdout
+
+    class MockPopen(Mock):
+        """Mock the subprocess.Popen call."""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.context = ContextBundle(code=0, stdout=[])
+
+        def __enter__(self):
+            return self.context
+
+        def __exit__(self, *args, **kwargs):
+            pass
+
+    popen_mock = MockPopen()
+    monkeypatch.setattr("flash_utils.flash.Popen", popen_mock)
+    return popen_mock
 
 
 @pytest.mark.parametrize("option", ("-h", "--help"))
@@ -68,3 +97,27 @@ def test_good_params_missing_images(
 
     assert output is not None
     assert "missing" in output.err.lower() and "image" in output.err.lower()
+
+
+def test_rootfs_write(capsys: pytest.CaptureFixture[str], tmp_path, mock_serial_port, mock_popen):
+    """Test FlashUtil writing rootfs with temp path"""
+
+    rootfs_content = "TEMP ROOTFS FILE DATA"
+
+    images = tmp_path / "images"
+    images.mkdir()
+    rootfs_file = images / CORE_IMAGE_FILE_DEFAULT
+    rootfs_file.write_text(rootfs_content)
+
+    # normal users probably dont pass image_path, but we are generating a temp path
+    sys.argv = ["flash_util.py", "--rootfs", "--image_path", str(images)]
+    FlashUtil()
+
+    output = capsys.readouterr()
+    assert "Power on board. Make sure boot2 strap is NOT on." in output.out
+
+    mock_serial_port.assert_called_once_with(port="/dev/ttyUSB0", baudrate=115200)
+    mock_popen.assert_called_once()
+
+    # assert fastboot setup (specific to rootfs flashing)
+    mock_serial_port.return_value.write.assert_any_call("\rfastboot udp\r".encode())
