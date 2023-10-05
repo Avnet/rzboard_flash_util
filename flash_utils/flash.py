@@ -25,14 +25,28 @@ class FlashUtil:
     - Instantiate the class to parse command line arguments and flash the specified image(s).
     """
 
+    # pylint: disable=too-many-instance-attributes
+    # reasonable number of instance variables given the files we need to flash
     def __init__(self):
         self.__script_dir = os.getcwd()
-        self.__setup_argument_parser()
 
-        if self.__args.bootloader:
+        self.flash_writer_image = f"{self.__script_dir}/{FLASH_WRITER_FILE_DEFAULT}"
+        self.bl2_image = f"{self.__script_dir}/{BL2_FILE_DEFAULT}"
+        self.fip_image = f"{self.__script_dir}/{FIP_FILE_DEFAULT}"
+        self.rootfs_image = f"{self.__script_dir}/{CORE_IMAGE_FILE_DEFAULT}"
+
+        argparser = self.argparse_and_override_defaults()
+
+        bootloader_override = (
+            self.__args.flash_writer_image_override
+            and self.__args.bl2_image_override
+            and self.__args.fip_image_override
+        )
+
+        if self.__args.bootloader or bootloader_override:
             self.__setup_serial_port()
             self.write_bootloader()
-        elif self.__args.rootfs:
+        elif self.__args.rootfs or self.__args.rootfs_image_override:
             self.__setup_serial_port()
             self.write_system_image()
         elif self.__args.full:
@@ -40,54 +54,91 @@ class FlashUtil:
             self.write_bootloader()
             self.write_system_image()
         else:
-            self.__parser.error(
+            argparser.error(
                 "Please specify which image(s) to flash.\n\nExamples:\n\t"
+                "\n\tUsing default path of files in flash_rzboard.py dir\n\t"
                 "./flash_util.py --bootloader\n\t"
                 "./flash_util.py --rootfs\n\t"
-                "./flash_util.py --full"
+                "./flash_util.py --full\n\t"
+                "\n\tSpecifying image path(s):\n\t"
+                "./flash_util.py --image_rootfs <PATH_TO_ROOTFS_IMAGE>\n\t"
+                "./flash_util.py --full --image_path <PATH_TO_IMAGES_DIR>\n\t"
+                "\n\tNote: when providing writer/bl2/fip image paths, you must provide"
+                " all three:\n\t"
+                "./flash_util.py --image_writer <PATH> --image_bl2 <PATH> --image_fip <PATH>\n\t"
             )
 
-    # Setup CLI parser
-    def __setup_argument_parser(self):
-        # Create parser
-        self.__parser = argparse.ArgumentParser(
+    def handle_path_overrides(self):
+        """
+        Handles any path overrides specified via command line arg.
+        """
+
+        if self.__args.flash_writer_image_override:
+            self.flash_writer_image = self.__args.flash_writer_image_override
+        if self.__args.bl2_image_override:
+            self.bl2_image = self.__args.bl2_image_override
+        if self.__args.fip_image_override:
+            self.fip_image = self.__args.fip_image_override
+        if self.__args.rootfs_image_override:
+            self.rootfs_image = self.__args.rootfs_image_override
+
+        if self.__args.image_path:
+            print(f"Overwriting default image paths with {self.__args.image_path}.")
+            self.flash_writer_image = f"{self.__args.image_path}/{FLASH_WRITER_FILE_DEFAULT}"
+            self.bl2_image = f"{self.__args.image_path}/{BL2_FILE_DEFAULT}"
+            self.fip_image = f"{self.__args.image_path}/{FIP_FILE_DEFAULT}"
+            self.rootfs_image = f"{self.__args.image_path}/{CORE_IMAGE_FILE_DEFAULT}"
+
+    def argparse_and_override_defaults(self):
+        """
+        Sets up the argument parser before parsing the command line arguments
+        and setting FlashUtil vars.
+
+        Returns:
+            None
+        """
+
+        argparser = argparse.ArgumentParser(
             description="Utility to flash Avnet RZBoard.\n",
             epilog="Example:\n\t./flash_util.py --bootloader",
         )
 
         # Add arguments
         # Commands
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--bootloader",
             default=False,
             action="store_true",
             dest="bootloader",
-            help="Flash bootloader only.",
+            help="Flash bootloader only (assumes files in <SCRIPT_DIR>)."
+            f" Requires {FLASH_WRITER_FILE_DEFAULT}, {BL2_FILE_DEFAULT}, and {FIP_FILE_DEFAULT}",
         )
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--rootfs",
             default=False,
             action="store_true",
             dest="rootfs",
-            help="Flash rootfs only.",
+            help=f"Flash rootfs only (defaults to: <SCRIPT_DIR>/{CORE_IMAGE_FILE_DEFAULT}).",
         )
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--full",
             default=False,
             action="store_true",
             dest="full",
-            help="Flash bootloader and rootfs.",
+            help="Flash bootloader and rootfs (assumes files in <SCRIPT_DIR>)."
+            f" Requires {FLASH_WRITER_FILE_DEFAULT}, {BL2_FILE_DEFAULT}, {FIP_FILE_DEFAULT}"
+            f" and {CORE_IMAGE_FILE_DEFAULT}",
         )
 
         # Serial port arguments
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--serial_port",
             default="/dev/ttyUSB0",
             dest="serialPort",
             action="store",
             help="Serial port used to talk to board (defaults to: /dev/ttyUSB0).",
         )
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--serial_port_baud",
             default=115200,
             dest="baudRate",
@@ -97,40 +148,35 @@ class FlashUtil:
         )
 
         # Images
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--image_writer",
-            default=f"{self.__script_dir}/{FLASH_WRITER_FILE_DEFAULT}",
-            dest="flashWriterImage",
+            dest="flash_writer_image_override",
             action="store",
             type=str,
-            help="Path to Flash Writer image"
-            f"(defaults to: <SCRIPT_DIR>/{FLASH_WRITER_FILE_DEFAULT}).",
+            help="Path to Flash Writer image",
         )
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--image_bl2",
-            default=f"{self.__script_dir}/{BL2_FILE_DEFAULT}",
-            dest="bl2Image",
+            dest="bl2_image_override",
             action="store",
             type=str,
-            help=f"Path to bl2 image (defaults to: <SCRIPT_DIR>/{BL2_FILE_DEFAULT}).",
+            help="Path to bl2 image.",
         )
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--image_fip",
-            default=f"{self.__script_dir}/{FIP_FILE_DEFAULT}",
-            dest="fipImage",
+            dest="fip_image_override",
             action="store",
             type=str,
-            help=f"Path to FIP image (defaults to: <SCRIPT_DIR>/{FIP_FILE_DEFAULT}).",
+            help="Path to FIP image.",
         )
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--image_rootfs",
-            default=f"{self.__script_dir}/{CORE_IMAGE_FILE_DEFAULT}",
-            dest="rootfsImage",
+            dest="rootfs_image_override",
             action="store",
             type=str,
-            help=f"Path to rootfs (defaults to: <SCRIPT_DIR>/{CORE_IMAGE_FILE_DEFAULT}).",
+            help="Path to rootfs.",
         )
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--image_path",
             dest="image_path",
             action="store",
@@ -140,7 +186,7 @@ class FlashUtil:
         )
 
         # Networking
-        self.__parser.add_argument(
+        argparser.add_argument(
             "--static_ip",
             default="",
             dest="staticIP",
@@ -148,14 +194,10 @@ class FlashUtil:
             help="IP Address assigned to board during flashing.",
         )
 
-        self.__args = self.__parser.parse_args()
+        self.__args = argparser.parse_args()
+        self.handle_path_overrides()
 
-        if self.__args.image_path:
-            print(f"Overwriting default image paths with {self.__args.image_path}.")
-            self.__args.flashWriterImage = f"{self.__args.image_path}/{FLASH_WRITER_FILE_DEFAULT}"
-            self.__args.bl2Image = f"{self.__args.image_path}/{BL2_FILE_DEFAULT}"
-            self.__args.fipImage = f"{self.__args.image_path}/{FIP_FILE_DEFAULT}"
-            self.__args.rootfsImage = f"{self.__args.image_path}/{CORE_IMAGE_FILE_DEFAULT}"
+        return argparser
 
     # Setup Serial Port
     def __setup_serial_port(self):
@@ -175,14 +217,14 @@ class FlashUtil:
         """Write bootloader (flashWriter, bl2, fip images) to board."""
 
         # Check for files
-        if not os.path.isfile(self.__args.flashWriterImage):
-            die(f"Missing flash writer image: {self.__args.flashWriterImage}")
+        if not os.path.isfile(self.flash_writer_image):
+            die(f"Missing flash writer image: {self.flash_writer_image}")
 
-        if not os.path.isfile(self.__args.bl2Image):
-            die(f"Missing bl2 image: {self.__args.bl2Image}")
+        if not os.path.isfile(self.bl2_image):
+            die(f"Missing bl2 image: {self.bl2_image}")
 
-        if not os.path.isfile(self.__args.fipImage):
-            die(f"Missing FIP image: {self.__args.fipImage}")
+        if not os.path.isfile(self.fip_image):
+            die(f"Missing FIP image: {self.fip_image}")
 
         # Wait for device to be ready to receive image.
         print("Please power on board. Make sure boot2 is strapped.")
@@ -190,7 +232,7 @@ class FlashUtil:
 
         # Write flash writer application
         print("Writing Flash Writer application.")
-        self.write_file_to_serial(self.__args.flashWriterImage)
+        self.write_file_to_serial(self.flash_writer_image)
 
         # pylint: disable=locally-disabled, fixme
         # TODO: Wait for '>' instead of just time based.
@@ -214,7 +256,7 @@ class FlashUtil:
 
         time.sleep(2)
         print("Writing bl2 image.")
-        self.write_file_to_serial(self.__args.bl2Image)
+        self.write_file_to_serial(self.bl2_image)
 
         time.sleep(2)
         self.__serial_port.write("\rEM_W\r".encode())
@@ -230,7 +272,7 @@ class FlashUtil:
 
         time.sleep(2)
         print("Writing FIP image.")
-        self.write_file_to_serial(self.__args.fipImage)
+        self.write_file_to_serial(self.fip_image)
 
         time.sleep(2)
         self.__serial_port.write("\rEM_SECSD\r".encode())
@@ -254,11 +296,11 @@ class FlashUtil:
     def write_system_image(self):
         """Write system image (containing kernel, dtb, and rootfs) to board.)"""
         # Check for system image
-        if self.__args.rootfsImage is None:
+        if self.rootfs_image is None:
             die("No rootfsImage argument")
 
-        if not os.path.isfile(self.__args.rootfsImage):
-            die(f"Missing system image: {self.__args.rootfsImage}")
+        if not os.path.isfile(self.rootfs_image):
+            die(f"Missing system image: {self.rootfs_image}")
 
         # Extract ADB tools
         self.__extract_adb()
@@ -295,7 +337,7 @@ class FlashUtil:
 
         fastboot_path = f"{self.__script_dir}/adb/platform-tools/fastboot"
         fastboot_args = (
-            f"-s udp:{self.__device_ip_address} " f"-v flash rawimg {self.__args.rootfsImage}"
+            f"-s udp:{self.__device_ip_address} " f"-v flash rawimg {self.rootfs_image}"
         )
         with Popen(
             fastboot_path + " " + fastboot_args,
