@@ -3,11 +3,17 @@ This module contains unit tests for the FlashUtil class in the flash_utils.flash
 """
 
 import sys
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 
-from flash_utils.flash import CORE_IMAGE_FILE_DEFAULT, FlashUtil
+from flash_utils.flash import (
+    BL2_FILE_DEFAULT,
+    CORE_IMAGE_FILE_DEFAULT,
+    FIP_FILE_DEFAULT,
+    FLASH_WRITER_FILE_DEFAULT,
+    FlashUtil,
+)
 
 DEFAULT_BAUD_RATE = 115200
 DEFAULT_SERIAL_PORT = "/dev/ttyUSB0"
@@ -169,3 +175,61 @@ def test_image_rootfs_write(
 
     # assert fastboot setup (specific to rootfs flashing)
     mock_serial_port.return_value.write.assert_any_call("\rfastboot udp\r".encode())
+
+
+def setup_tmp_bootloader_dir_and_files(tmp_path):
+    """
+    Creates temporary bootloader directory and files for testing
+    """
+
+    flash_writer_content = "TEMP FLASH WRITER FILE DATA"
+    bl2_content = "TEMP BL2 FILE DATA"
+    fip_content = "TEMP FIP IMAGE DATA"
+
+    print(f"tmp_path type {type(tmp_path)}")
+
+    image_dir = tmp_path / "images"
+    image_dir.mkdir()
+
+    flash_writer_image = image_dir / FLASH_WRITER_FILE_DEFAULT
+    flash_writer_image.write_text(flash_writer_content)
+    bl2_image = image_dir / BL2_FILE_DEFAULT
+    bl2_image.write_text(bl2_content)
+    fip_image = image_dir / FIP_FILE_DEFAULT
+    fip_image.write_text(fip_content)
+
+    return image_dir, flash_writer_image, bl2_image, fip_image
+
+
+def test_bootloader_write(
+    capsys: pytest.CaptureFixture[str], tmp_path, mock_serial_port, monkeypatch
+):
+    """Test FlashUtil writing bootloader with temp path"""
+
+    image_dir, flash_writer_image, bl2_image, fip_image = setup_tmp_bootloader_dir_and_files(
+        tmp_path
+    )
+
+    mock_file_write = Mock()
+    monkeypatch.setattr("flash_utils.flash.FlashUtil.write_file_to_serial", mock_file_write)
+
+    # mock sleep to reduce test time
+    monkeypatch.setattr("flash_utils.flash.time.sleep", Mock())
+
+    # normal users probably dont pass image_path, but we are generating a temp path
+    sys.argv = ["flash_util.py", "--bootloader", "--image_path", str(image_dir)]
+    FlashUtil()
+
+    output = capsys.readouterr()
+
+    assert "missing" not in output.err.lower()
+    assert "Please power on board. Make sure boot2 is strapped.".lower() in output.out.lower()
+
+    mock_serial_port.assert_called_once_with(port=DEFAULT_SERIAL_PORT, baudrate=DEFAULT_BAUD_RATE)
+    mock_serial_port.return_value.write.assert_any_call("\rEM_E\r".encode())
+    mock_serial_port.return_value.write.assert_any_call("\rEM_W\r".encode())
+    mock_serial_port.return_value.write.assert_any_call("\rEM_SECSD\r".encode())
+
+    mock_file_write.assert_has_calls(
+        [call(str(flash_writer_image)), call(str(bl2_image)), call(str(fip_image))]
+    )
