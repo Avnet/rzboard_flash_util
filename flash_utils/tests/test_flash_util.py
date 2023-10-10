@@ -201,10 +201,10 @@ def setup_tmp_bootloader_dir_and_files(tmp_path):
     return image_dir, flash_writer_image, bl2_image, fip_image
 
 
-def test_bootloader_write(
+def test_flashing_emmc_bootloader(
     capsys: pytest.CaptureFixture[str], tmp_path, mock_serial_port, monkeypatch
 ):
-    """Test FlashUtil writing bootloader with temp path"""
+    """Test FlashUtil writing bootloader to emmc with images from temp path"""
 
     image_dir, flash_writer_image, bl2_image, fip_image = setup_tmp_bootloader_dir_and_files(
         tmp_path
@@ -229,6 +229,40 @@ def test_bootloader_write(
     mock_serial_port.return_value.write.assert_any_call("\rEM_E\r".encode())
     mock_serial_port.return_value.write.assert_any_call("\rEM_W\r".encode())
     mock_serial_port.return_value.write.assert_any_call("\rEM_SECSD\r".encode())
+
+    mock_file_write.assert_has_calls(
+        [call(str(flash_writer_image)), call(str(bl2_image)), call(str(fip_image))]
+    )
+
+
+def test_flashing_qspi_bootloader(
+    capsys: pytest.CaptureFixture[str], tmp_path, mock_serial_port, monkeypatch
+):
+    """Test FlashUtil writing bootloader to qspi with images from temp path"""
+
+    image_dir, flash_writer_image, bl2_image, fip_image = setup_tmp_bootloader_dir_and_files(
+        tmp_path
+    )
+
+    mock_file_write = Mock()
+    monkeypatch.setattr("flash_utils.flash.FlashUtil.write_file_to_serial", mock_file_write)
+
+    # mock sleep to reduce test time
+    monkeypatch.setattr("flash_utils.flash.time.sleep", Mock())
+
+    # normal users probably dont pass image_path, but we are generating a temp path
+    sys.argv = ["flash_util.py", "--bootloader", "--qspi", "--image_path", str(image_dir)]
+    FlashUtil()
+
+    output = capsys.readouterr()
+
+    assert "missing" not in output.err.lower()
+    assert "Please power on board. Make sure boot2 is strapped.".lower() in output.out.lower()
+
+    mock_serial_port.assert_called_once_with(port=DEFAULT_SERIAL_PORT, baudrate=DEFAULT_BAUD_RATE)
+
+    # pylint: disable=locally-disabled, fixme
+    # TODO: add qspi specific assertions
 
     mock_file_write.assert_has_calls(
         [call(str(flash_writer_image)), call(str(bl2_image)), call(str(fip_image))]

@@ -231,10 +231,7 @@ class FlashUtil:
         """Write bootloader (flashWriter, bl2, fip images) to board."""
 
         if self.__args.qspi:
-            print(
-                "Error: QSPI not yet supported:"
-                " https://github.com/Avnet/rzboard_flash_util/issues/10"
-            )
+            die("QSPI not yet supported: https://github.com/Avnet/rzboard_flash_util/issues/10")
 
         self.check_bootloader_files()
 
