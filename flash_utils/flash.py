@@ -331,16 +331,37 @@ class FlashUtil:
         self.__serial_port.write("1\r".encode())
 
     def flash_bootloader_qspi(self):
+        """
+        Prepares QSPI for flashing before flashing bootloader files.
+
+        returns:
+            None
+        """
+
         self.flash_erase_qspi()
         self.flash_bl2_image_qspi()
         self.flash_fip_image_qspi()
 
     def flash_erase_qspi(self):
+        """
+        Clears QSPI flash
+
+        returns:
+            None
+        """
+
         self.write_serial_cmd("xcs")
         self.wait_for_serial_read("Clear OK?", print_buffer=True)
         self.write_serial_cmd("y")
 
     def flash_bl2_image_qspi(self):
+        """
+        Flashes bl2 image to QSPI
+
+        returns:
+            None
+        """
+
         self.write_serial_cmd("XLS2")
 
         self.wait_for_serial_read("Please Input : H'", print_buffer=True)
@@ -354,6 +375,13 @@ class FlashUtil:
         self.write_file_to_serial(self.bl2_image)
 
     def flash_fip_image_qspi(self):
+        """
+        Flashes fip image to QSPI
+
+        returns:
+            None
+        """
+
         self.write_serial_cmd("XLS2")
 
         self.wait_for_serial_read("Please Input : H'", print_buffer=True)
