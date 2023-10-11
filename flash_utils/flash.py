@@ -206,6 +206,11 @@ class FlashUtil:
             action="store_true",
             help="Flash to QSPI (default is eMMC).",
         )
+
+        argparser.add_argument(
+            "--debug", action="store_true", help="Enable debug output (buffer printing)"
+        )
+
         self.__args = argparser.parse_args()
         self.handle_path_overrides()
 
@@ -243,9 +248,6 @@ class FlashUtil:
         else:
             self.flash_bootloader_emmc()
 
-        # if self.__args.qspi:
-        # die("QSPI not yet supported: https://github.com/Avnet/rzboard_flash_util/issues/10")
-
     def flash_bootloader_emmc(self):
         """Flashes the bootloader to the eMMC memory.
 
@@ -253,10 +255,10 @@ class FlashUtil:
         to the eMMC memory.
         """
 
-        # pylint: disable=locally-disabled, fixme
-        # TODO: Wait for '>' instead of just time based.
         self.flash_erase_emmc()
 
+        # pylint: disable=locally-disabled, fixme
+        # TODO: Wait for '>' instead of just time based.
         time.sleep(1)
         self.__serial_port.write("\rEM_W\r".encode())
 
@@ -318,12 +320,13 @@ class FlashUtil:
 
         print("Writing Flash Writer application.")
         self.write_file_to_serial(self.flash_writer_image)
+        time.sleep(1)
+        print("Done writing Flash Writer application.")
 
     def flash_erase_emmc(self):
         """
         Erases the eMMC flash memory.
         """
-
         time.sleep(2)
         self.__serial_port.write("\rEM_E\r".encode())
 
@@ -349,10 +352,12 @@ class FlashUtil:
         returns:
             None
         """
-
-        self.write_serial_cmd("xcs")
-        self.wait_for_serial_read("Clear OK?", print_buffer=True)
+        print("Clearing QSPI flash")
+        self.write_serial_cmd("XCS", prefix="\r")
+        self.wait_for_serial_read("Clear OK?", print_buffer=self.__args.debug)
         self.write_serial_cmd("y")
+        self.wait_for_serial_read(">", print_buffer=self.__args.debug)
+        print("Done clearing QSPI flash")
 
     def flash_bl2_image_qspi(self):
         """
@@ -362,17 +367,19 @@ class FlashUtil:
             None
         """
 
+        print("Flashing bl2 image to QSPI")
         self.write_serial_cmd("XLS2")
 
-        self.wait_for_serial_read("Please Input : H'", print_buffer=True)
+        self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
         self.write_serial_cmd("11E00")
 
-        self.wait_for_serial_read("Please Input : H'", print_buffer=True)
+        self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
         self.write_serial_cmd("00000")
 
-        self.wait_for_serial_read("please send !", print_buffer=True)
+        self.wait_for_serial_read("please send !", print_buffer=self.__args.debug)
 
         self.write_file_to_serial(self.bl2_image)
+        print("Done flashing bl2 image to QSPI")
 
     def flash_fip_image_qspi(self):
         """
@@ -382,17 +389,19 @@ class FlashUtil:
             None
         """
 
+        print("Flashing bl2 image to QSPI")
         self.write_serial_cmd("XLS2")
 
-        self.wait_for_serial_read("Please Input : H'", print_buffer=True)
+        self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
         self.write_serial_cmd("00000")
 
-        self.wait_for_serial_read("Please Input : H'", print_buffer=True)
+        self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
         self.write_serial_cmd("1D200")
 
-        self.wait_for_serial_read("please send", print_buffer=True)
+        self.wait_for_serial_read("please send", print_buffer=self.__args.debug)
 
         self.write_file_to_serial(self.fip_image)
+        print("Done flashing bl2 image to QSPI")
 
     def check_bootloader_files(self):
         """
@@ -467,17 +476,19 @@ class FlashUtil:
         if fastboot_process.returncode != 0:
             die("Failed to flash rootfs.")
 
-    def write_serial_cmd(self, cmd):
+    def write_serial_cmd(self, cmd, prefix=""):
         """
         Writes a command to the serial port.
 
         Args:
             cmd (str): The command to write to the serial port.
+            prefix (str): What to prepend before the command. Useful for prepending
+                carriage returns.
 
         Returns:
             None
         """
-        self.__serial_port.write(f"{cmd}\r".encode())
+        self.__serial_port.write(f"{prefix}{cmd}\r".encode())
 
     # Function to write file over serial
     def write_file_to_serial(self, file):

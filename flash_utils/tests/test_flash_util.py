@@ -247,6 +247,9 @@ def test_flashing_qspi_bootloader(
     mock_file_write = Mock()
     monkeypatch.setattr("flash_utils.flash.FlashUtil.write_file_to_serial", mock_file_write)
 
+    # mock sleep to reduce test time
+    monkeypatch.setattr("flash_utils.flash.time.sleep", Mock())
+
     # normal users probably dont pass image_path, but we are generating a temp path
     sys.argv = ["flash_util.py", "--bootloader", "--qspi", "--image_path", str(image_dir)]
     FlashUtil()
@@ -259,7 +262,7 @@ def test_flashing_qspi_bootloader(
     mock_serial_port.assert_called_once_with(port=DEFAULT_SERIAL_PORT, baudrate=DEFAULT_BAUD_RATE)
 
     # assert QSPI cleared
-    mock_serial_port.return_value.write.assert_any_call("xcs\r".encode())
+    mock_serial_port.return_value.write.assert_any_call("\rXCS\r".encode())
 
     # assert QSPI Being written to
     mock_serial_port.return_value.write.assert_any_call("XLS2\r".encode())
