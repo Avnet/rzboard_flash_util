@@ -110,8 +110,10 @@ class FlashUtil:
             default=False,
             action="store_true",
             dest="bootloader",
-            help="Flash bootloader only (assumes files in <SCRIPT_DIR>)."
-            f" Requires {FLASH_WRITER_FILE_DEFAULT}, {BL2_FILE_DEFAULT}, and {FIP_FILE_DEFAULT}",
+            help=(
+                "Flash bootloader only (assumes files in <SCRIPT_DIR>). Requires"
+                f" {FLASH_WRITER_FILE_DEFAULT}, {BL2_FILE_DEFAULT}, and {FIP_FILE_DEFAULT}"
+            ),
         )
         argparser.add_argument(
             "--rootfs",
@@ -125,9 +127,11 @@ class FlashUtil:
             default=False,
             action="store_true",
             dest="full",
-            help="Flash bootloader and rootfs (assumes files in <SCRIPT_DIR>)."
-            f" Requires {FLASH_WRITER_FILE_DEFAULT}, {BL2_FILE_DEFAULT}, {FIP_FILE_DEFAULT}"
-            f" and {CORE_IMAGE_FILE_DEFAULT}",
+            help=(
+                "Flash bootloader and rootfs (assumes files in <SCRIPT_DIR>)."
+                f" Requires {FLASH_WRITER_FILE_DEFAULT}, {BL2_FILE_DEFAULT}, {FIP_FILE_DEFAULT}"
+                f" and {CORE_IMAGE_FILE_DEFAULT}"
+            ),
         )
 
         # Serial port arguments
@@ -181,8 +185,10 @@ class FlashUtil:
             dest="image_path",
             action="store",
             type=str,
-            help="Absolute path to images dir"
-            "(used only with --bootloader, --rootfs, or --full to overwrite <SCRIPT_DIR>).",
+            help=(
+                "Absolute path to images dir"
+                "(used only with --bootloader, --rootfs, or --full to overwrite <SCRIPT_DIR>)."
+            ),
         )
 
         # Networking
@@ -192,6 +198,17 @@ class FlashUtil:
             dest="staticIP",
             action="store",
             help="IP Address assigned to board during flashing.",
+        )
+
+        # Target
+        argparser.add_argument(
+            "--qspi",
+            action="store_true",
+            help="Flash to QSPI (default is eMMC).",
+        )
+
+        argparser.add_argument(
+            "--debug", action="store_true", help="Enable debug output (buffer printing)"
         )
 
         self.__args = argparser.parse_args()
@@ -208,40 +225,40 @@ class FlashUtil:
             )
         except:
             die(
-                msg="Unable to open serial port. "
-                "Do you have sufficient permissions? Is your device connected?"
+                msg=(
+                    "Unable to open serial port. "
+                    "Do you have sufficient permissions? Is your device connected?"
+                )
             )
 
     # Function to write bootloader
     def write_bootloader(self):
         """Write bootloader (flashWriter, bl2, fip images) to board."""
 
-        # Check for files
-        if not os.path.isfile(self.flash_writer_image):
-            die(f"Missing flash writer image: {self.flash_writer_image}")
-
-        if not os.path.isfile(self.bl2_image):
-            die(f"Missing bl2 image: {self.bl2_image}")
-
-        if not os.path.isfile(self.fip_image):
-            die(f"Missing FIP image: {self.fip_image}")
+        self.check_bootloader_files()
 
         # Wait for device to be ready to receive image.
         print("Please power on board. Make sure boot2 is strapped.")
         self.__serial_port.read_until("please send !".encode())
 
-        # Write flash writer application
-        print("Writing Flash Writer application.")
-        self.write_file_to_serial(self.flash_writer_image)
+        self.flash_flash_writer()
+
+        if self.__args.qspi:
+            self.flash_bootloader_qspi()
+        else:
+            self.flash_bootloader_emmc()
+
+    def flash_bootloader_emmc(self):
+        """Flashes the bootloader to the eMMC memory.
+
+        This method sends a series of commands to the serial port to flash the bootloader
+        to the eMMC memory.
+        """
+
+        self.flash_erase_emmc()
 
         # pylint: disable=locally-disabled, fixme
         # TODO: Wait for '>' instead of just time based.
-        time.sleep(2)
-        self.__serial_port.write("\rEM_E\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("1\r".encode())
-
         time.sleep(1)
         self.__serial_port.write("\rEM_W\r".encode())
 
@@ -292,6 +309,115 @@ class FlashUtil:
         time.sleep(1)
         self.__serial_port.write("8\r".encode())
 
+    def flash_flash_writer(self):
+        """
+        Writes the Flash Writer application to the serial port.
+
+        Note
+        ----
+        This operation is common to eMMC and QSPI flashing.
+        """
+
+        print("Writing Flash Writer application.")
+        self.write_file_to_serial(self.flash_writer_image)
+        time.sleep(1)
+        print("Done writing Flash Writer application.")
+
+    def flash_erase_emmc(self):
+        """
+        Erases the eMMC flash memory.
+        """
+        time.sleep(2)
+        self.__serial_port.write("\rEM_E\r".encode())
+
+        time.sleep(1)
+        self.__serial_port.write("1\r".encode())
+
+    def flash_bootloader_qspi(self):
+        """
+        Prepares QSPI for flashing before flashing bootloader files.
+
+        returns:
+            None
+        """
+
+        self.flash_erase_qspi()
+        self.flash_bl2_image_qspi()
+        self.flash_fip_image_qspi()
+
+    def flash_erase_qspi(self):
+        """
+        Clears QSPI flash
+
+        returns:
+            None
+        """
+        print("Clearing QSPI flash")
+        self.write_serial_cmd("XCS", prefix="\r")
+        self.wait_for_serial_read("Clear OK?", print_buffer=self.__args.debug)
+        self.write_serial_cmd("y")
+        self.wait_for_serial_read(">", print_buffer=self.__args.debug)
+        print("Done clearing QSPI flash")
+
+    def flash_bl2_image_qspi(self):
+        """
+        Flashes bl2 image to QSPI
+
+        returns:
+            None
+        """
+
+        print("Flashing bl2 image to QSPI")
+        self.write_serial_cmd("XLS2")
+
+        self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
+        self.write_serial_cmd("11E00")
+
+        self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
+        self.write_serial_cmd("00000")
+
+        self.wait_for_serial_read("please send !", print_buffer=self.__args.debug)
+
+        self.write_file_to_serial(self.bl2_image)
+        print("Done flashing bl2 image to QSPI")
+
+    def flash_fip_image_qspi(self):
+        """
+        Flashes fip image to QSPI
+
+        returns:
+            None
+        """
+
+        print("Flashing bl2 image to QSPI")
+        self.write_serial_cmd("XLS2")
+
+        self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
+        self.write_serial_cmd("00000")
+
+        self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
+        self.write_serial_cmd("1D200")
+
+        self.wait_for_serial_read("please send", print_buffer=self.__args.debug)
+
+        self.write_file_to_serial(self.fip_image)
+        print("Done flashing bl2 image to QSPI")
+
+    def check_bootloader_files(self):
+        """
+        Checks if the required bootloader files exist in the specified file paths.
+        Die if any of the files are missing.
+        """
+
+        if not os.path.isfile(self.flash_writer_image):
+            die(f"Missing flash writer image: {self.flash_writer_image}")
+
+        if not os.path.isfile(self.bl2_image):
+            die(f"Missing bl2 image: {self.bl2_image}")
+
+        if not os.path.isfile(self.fip_image):
+            die(f"Missing FIP image: {self.fip_image}")
+
     # Function to write system image over fastboot
     def write_system_image(self):
         """Write system image (containing kernel, dtb, and rootfs) to board.)"""
@@ -336,9 +462,7 @@ class FlashUtil:
         )
 
         fastboot_path = f"{self.__script_dir}/adb/platform-tools/fastboot"
-        fastboot_args = (
-            f"-s udp:{self.__device_ip_address} " f"-v flash rawimg {self.rootfs_image}"
-        )
+        fastboot_args = f"-s udp:{self.__device_ip_address} -v flash rawimg {self.rootfs_image}"
         with Popen(
             fastboot_path + " " + fastboot_args,
             shell=True,
@@ -352,17 +476,19 @@ class FlashUtil:
         if fastboot_process.returncode != 0:
             die("Failed to flash rootfs.")
 
-    def write_serial_cmd(self, cmd):
+    def write_serial_cmd(self, cmd, prefix=""):
         """
         Writes a command to the serial port.
 
         Args:
             cmd (str): The command to write to the serial port.
+            prefix (str): What to prepend before the command. Useful for prepending
+                carriage returns.
 
         Returns:
             None
         """
-        self.__serial_port.write(f"{cmd}\r".encode())
+        self.__serial_port.write(f"{prefix}{cmd}\r".encode())
 
     # Function to write file over serial
     def write_file_to_serial(self, file):
@@ -379,7 +505,7 @@ class FlashUtil:
             self.__serial_port.write(transmit_file.read())
             transmit_file.close()
 
-    def serial_read(self, cond="\n", print_buffer=False):
+    def wait_for_serial_read(self, cond="\n", print_buffer=False):
         """
         Reads data from the serial port until the specified condition is met.
 
