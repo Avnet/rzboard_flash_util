@@ -58,6 +58,7 @@ class FlashUtil:
                 "Please specify which image(s) to flash.\n\nExamples:\n\t"
                 "\n\tUsing default path of files in flash_rzboard.py dir\n\t"
                 "./flash_util.py --bootloader\n\t"
+                "./flash_util.py --bootloader --qspi\n\t"
                 "./flash_util.py --rootfs\n\t"
                 "./flash_util.py --full\n\t"
                 "\n\tSpecifying image path(s):\n\t"

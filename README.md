@@ -1,14 +1,15 @@
 # RZBoard Flash Utility
 
-This is a platform agnostic utility used to flash the [RZBoard](https://www.avnet.com/wps/portal/us/products/avnet-boards/avnet-board-families/rzboard-v2l/). It can be used to flash the eMMC with both the bootloader(s) and system image.
+This is a platform agnostic utility used to flash the [RZBoard](https://www.avnet.com/wps/portal/us/products/avnet-boards/avnet-board-families/rzboard-v2l/). This utility is used to flash the **bootloaders** to eMMC or QSPI and **system image** to eMMC.
 
 ## Install Python
 
-This utility is written in python3 with dependencies managed using pip. 
+This utility is written in python3 with (minimal) dependencies managed using pip.
 
 ### Ubuntu Installation
 
 On Ubuntu, python3 and pip can be installed by running:
+
 ```bash
 sudo apt install -y python3 python3-pip
 ```
@@ -37,7 +38,8 @@ Running `./flash_rzboard.py -h` will print usage information.  A more detailed d
 The utility can be used to flash the bootloader, rootfs, or both at the same time:
 
 ```bash
-./flash_rzboard.py --bootloader # Flash bootloader (includes flash image writer, BL2 image writer, FIP image)
+./flash_rzboard.py --bootloader # Flash bootloader to eMMC (includes flash image writer, BL2 image writer, FIP image)
+./flash_rzboard.py --bootloader --qspi # Flash bootloader to QSPI 
 ./flash_rzboard.py --rootfs     # Flash system image only
 ./flash_rzboard.py --full       # Flash bootloader and system image
 ```
@@ -45,6 +47,7 @@ The utility can be used to flash the bootloader, rootfs, or both at the same tim
 ### Options
 
 #### Serial Port
+
 By default, the utility uses `/dev/ttyUSB0` as the serial port to communicate with the RZBoard. This can be changed with `--serial_port`.  Additionally the default baud rate of `115200` can be chaged with `--serial_port_baud`:
 
 ```bash
