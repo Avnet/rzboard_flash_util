@@ -248,6 +248,8 @@ class FlashUtil:
             self.flash_bootloader_qspi()
         else:
             self.flash_bootloader_emmc()
+        
+        print("Done flashing bootloader!")
 
     def flash_bootloader_emmc(self):
         """Flashes the bootloader to the eMMC memory.
@@ -390,7 +392,7 @@ class FlashUtil:
             None
         """
 
-        print("Flashing bl2 image to QSPI")
+        print("Flashing FIP image to QSPI")
         self.write_serial_cmd("XLS2")
 
         self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
@@ -402,7 +404,7 @@ class FlashUtil:
         self.wait_for_serial_read("please send", print_buffer=self.__args.debug)
 
         self.write_file_to_serial(self.fip_image)
-        print("Done flashing bl2 image to QSPI")
+        print("Done flashing FIP image to QSPI")
 
     def check_bootloader_files(self):
         """
