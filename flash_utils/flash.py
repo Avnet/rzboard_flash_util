@@ -248,7 +248,7 @@ class FlashUtil:
             self.flash_bootloader_qspi()
         else:
             self.flash_bootloader_emmc()
-        
+
         print("Done flashing bootloader!")
 
     def flash_bootloader_emmc(self):
