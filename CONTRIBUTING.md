@@ -4,7 +4,7 @@
 
 * **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/Avnet/rzboard_flash_util/issues).
 
-* If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/Avnet/rzboard_flash_util/issues/new). Be sure to include a **title and clear description**, as much relevant information as possible (**logs**), and comments reflecting the **expected behavior** that is not occurring.
+* If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/Avnet/rzboard_flash_util/issues/new?assignees=&labels=&projects=&template=bug_report.md&title=). Be sure to include a **title and clear description**, as much relevant information as possible (**logs**), and comments reflecting the **expected behavior** that is not occurring.
 
 #### **Did you write a patch that fixes a bug?**
 
