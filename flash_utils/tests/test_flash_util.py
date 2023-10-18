@@ -224,6 +224,8 @@ def test_flashing_emmc_bootloader(
 
     assert "missing" not in output.err.lower()
     assert "Please power on board. Make sure boot2 is strapped.".lower() in output.out.lower()
+    # tqdm progress bar prints to stderr by default
+    assert "100%" in output.err
 
     mock_serial_port.assert_called_once_with(port=DEFAULT_SERIAL_PORT, baudrate=DEFAULT_BAUD_RATE)
     mock_serial_port.return_value.write.assert_any_call("\rEM_E\r".encode())
@@ -258,6 +260,8 @@ def test_flashing_qspi_bootloader(
 
     assert "missing" not in output.err.lower()
     assert "Please power on board. Make sure boot2 is strapped.".lower() in output.out.lower()
+    # tqdm progress bar prints to stderr by default
+    assert "100%" in output.err
 
     mock_serial_port.assert_called_once_with(port=DEFAULT_SERIAL_PORT, baudrate=DEFAULT_BAUD_RATE)
 

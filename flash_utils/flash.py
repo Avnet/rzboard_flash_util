@@ -10,6 +10,7 @@ import zipfile
 from subprocess import PIPE, Popen
 
 import serial
+from tqdm import tqdm
 
 FLASH_WRITER_FILE_DEFAULT = "Flash_Writer_SCIF_rzboard.mot"
 BL2_FILE_DEFAULT = "bl2_bp-rzboard.srec"
@@ -240,43 +241,45 @@ class FlashUtil:
 
         # Wait for device to be ready to receive image.
         print("Please power on board. Make sure boot2 is strapped.")
-        self.__serial_port.read_until("please send !".encode())
+        with tqdm(total=1) as progress_bar:
+            self.__serial_port.read_until("please send !".encode())
+            progress_bar.update(1)
 
-        self.flash_flash_writer()
+        print("Flashing bootloader, this make take a few minutes...")
+        with tqdm(total=4) as progress_bar:
+            self.flash_flash_writer()
+            progress_bar.update(1)
 
-        if self.__args.qspi:
-            self.flash_bootloader_qspi()
-        else:
-            self.flash_bootloader_emmc()
+            if self.__args.qspi:
+                self.flash_bootloader_qspi(progress_bar)
+            else:
+                self.flash_bootloader_emmc(progress_bar)
 
         print("Done flashing bootloader!")
 
-    def flash_bootloader_emmc(self):
+    def flash_bootloader_emmc(self, progress_bar):
         """Flashes the bootloader to the eMMC memory.
 
         This method sends a series of commands to the serial port to flash the bootloader
         to the eMMC memory.
         """
 
-        self.flash_erase_emmc()
-
         # pylint: disable=locally-disabled, fixme
         # TODO: Wait for '>' instead of just time based.
-        time.sleep(1)
-        self.__serial_port.write("\rEM_W\r".encode())
+        self.flash_erase_emmc()
+        progress_bar.update(1)
+        self.flash_bl2_image_emmc()
+        progress_bar.update(1)
+        self.flash_fip_image_emmc()
+        progress_bar.update(1)
 
-        time.sleep(1)
-        self.__serial_port.write("1\r".encode())
+    def flash_fip_image_emmc(self):
+        """
+        Flashes fip image to eMMC
 
-        time.sleep(1)
-        self.__serial_port.write("1\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("11E00\r".encode())
-
-        time.sleep(2)
-        print("Writing bl2 image.")
-        self.write_file_to_serial(self.bl2_image)
+        returns:
+            None
+        """
 
         time.sleep(2)
         self.__serial_port.write("\rEM_W\r".encode())
@@ -291,7 +294,6 @@ class FlashUtil:
         self.__serial_port.write("00000\r".encode())
 
         time.sleep(2)
-        print("Writing FIP image.")
         self.write_file_to_serial(self.fip_image)
 
         time.sleep(2)
@@ -312,6 +314,29 @@ class FlashUtil:
         time.sleep(1)
         self.__serial_port.write("8\r".encode())
 
+    def flash_bl2_image_emmc(self):
+        """
+        Flashes bl2 image to QSPI
+
+        returns:
+            None
+        """
+
+        time.sleep(1)
+        self.__serial_port.write("\rEM_W\r".encode())
+
+        time.sleep(1)
+        self.__serial_port.write("1\r".encode())
+
+        time.sleep(1)
+        self.__serial_port.write("1\r".encode())
+
+        time.sleep(1)
+        self.__serial_port.write("11E00\r".encode())
+
+        time.sleep(2)
+        self.write_file_to_serial(self.bl2_image)
+
     def flash_flash_writer(self):
         """
         Writes the Flash Writer application to the serial port.
@@ -321,10 +346,8 @@ class FlashUtil:
         This operation is common to eMMC and QSPI flashing.
         """
 
-        print("Writing Flash Writer application.")
         self.write_file_to_serial(self.flash_writer_image)
         time.sleep(1)
-        print("Done writing Flash Writer application.")
 
     def flash_erase_emmc(self):
         """
@@ -336,7 +359,7 @@ class FlashUtil:
         time.sleep(1)
         self.__serial_port.write("1\r".encode())
 
-    def flash_bootloader_qspi(self):
+    def flash_bootloader_qspi(self, progress_bar):
         """
         Prepares QSPI for flashing before flashing bootloader files.
 
@@ -345,8 +368,11 @@ class FlashUtil:
         """
 
         self.flash_erase_qspi()
+        progress_bar.update(1)
         self.flash_bl2_image_qspi()
+        progress_bar.update(1)
         self.flash_fip_image_qspi()
+        progress_bar.update(1)
 
     def flash_erase_qspi(self):
         """
@@ -355,12 +381,10 @@ class FlashUtil:
         returns:
             None
         """
-        print("Clearing QSPI flash")
         self.write_serial_cmd("XCS", prefix="\r")
         self.wait_for_serial_read("Clear OK?", print_buffer=self.__args.debug)
         self.write_serial_cmd("y")
         self.wait_for_serial_read(">", print_buffer=self.__args.debug)
-        print("Done clearing QSPI flash")
 
     def flash_bl2_image_qspi(self):
         """
@@ -370,7 +394,6 @@ class FlashUtil:
             None
         """
 
-        print("Flashing bl2 image to QSPI")
         self.write_serial_cmd("XLS2")
 
         self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
@@ -382,7 +405,6 @@ class FlashUtil:
         self.wait_for_serial_read("please send !", print_buffer=self.__args.debug)
 
         self.write_file_to_serial(self.bl2_image)
-        print("Done flashing bl2 image to QSPI")
 
     def flash_fip_image_qspi(self):
         """
@@ -392,7 +414,6 @@ class FlashUtil:
             None
         """
 
-        print("Flashing FIP image to QSPI")
         self.write_serial_cmd("XLS2")
 
         self.wait_for_serial_read("Please Input : H'", print_buffer=self.__args.debug)
@@ -404,7 +425,6 @@ class FlashUtil:
         self.wait_for_serial_read("please send", print_buffer=self.__args.debug)
 
         self.write_file_to_serial(self.fip_image)
-        print("Done flashing FIP image to QSPI")
 
     def check_bootloader_files(self):
         """
