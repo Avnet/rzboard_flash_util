@@ -245,7 +245,7 @@ class FlashUtil:
             self.__serial_port.read_until("please send !".encode())
             progress_bar.update(1)
 
-        print("Flashing bootloader, this make take a few minutes...")
+        print("Flashing bootloader, this will take a few minutes...")
         with tqdm(total=4) as progress_bar:
             self.flash_flash_writer()
             progress_bar.update(1)
