@@ -97,7 +97,7 @@ class FlashUtil:
         and setting FlashUtil vars.
 
         Returns:
-            None
+            argparse.ArgumentParser: The argument parser.
         """
 
         argparser = argparse.ArgumentParser(
@@ -258,11 +258,7 @@ class FlashUtil:
         print("Done flashing bootloader!")
 
     def flash_bootloader_emmc(self, progress_bar):
-        """Flashes the bootloader to the eMMC memory.
-
-        This method sends a series of commands to the serial port to flash the bootloader
-        to the eMMC memory.
-        """
+        """Flashes the bootloader to the eMMC memory."""
 
         # pylint: disable=locally-disabled, fixme
         # TODO: Wait for '>' instead of just time based.
@@ -362,9 +358,6 @@ class FlashUtil:
     def flash_bootloader_qspi(self, progress_bar):
         """
         Prepares QSPI for flashing before flashing bootloader files.
-
-        returns:
-            None
         """
 
         self.flash_erase_qspi()
@@ -377,9 +370,6 @@ class FlashUtil:
     def flash_erase_qspi(self):
         """
         Clears QSPI flash
-
-        returns:
-            None
         """
         self.write_serial_cmd("XCS", prefix="\r")
         self.wait_for_serial_read("Clear OK?", print_buffer=self.__args.debug)
@@ -389,9 +379,6 @@ class FlashUtil:
     def flash_bl2_image_qspi(self):
         """
         Flashes bl2 image to QSPI
-
-        returns:
-            None
         """
 
         self.write_serial_cmd("XLS2")
@@ -409,9 +396,6 @@ class FlashUtil:
     def flash_fip_image_qspi(self):
         """
         Flashes fip image to QSPI
-
-        returns:
-            None
         """
 
         self.write_serial_cmd("XLS2")
@@ -507,9 +491,6 @@ class FlashUtil:
             cmd (str): The command to write to the serial port.
             prefix (str): What to prepend before the command. Useful for prepending
                 carriage returns.
-
-        Returns:
-            None
         """
         self.__serial_port.write(f"{prefix}{cmd}\r".encode())
 
