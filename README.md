@@ -2,6 +2,9 @@
 
 This is a platform agnostic utility used to flash the [RZBoard](https://www.avnet.com/wps/portal/us/products/avnet-boards/avnet-board-families/rzboard-v2l/). This utility is used to flash the **bootloaders** to eMMC or QSPI and **system image** to eMMC.
 
+> [!NOTE]
+> Get started with pre-compiled binaries: check out RZBoard's [latest releases](https://github.com/Avnet/RZ-V2L-HUB/releases)
+
 ## Install Python
 
 This utility is written in python3 with (minimal) dependencies managed using pip.
@@ -30,8 +33,8 @@ pip3 install -r requirements.txt
 ```
 
 ## Usage
-
-Running `./flash_rzboard.py -h` will print usage information.  A more detailed description of the arguments is detailed below.
+> [!TIP]
+> Running `./flash_rzboard.py -h` will print usage information.  A more detailed description of the arguments is detailed below.
 
 ### Specifying What to Flash
 
