@@ -260,9 +260,8 @@ class FlashUtil:
     def flash_bootloader_emmc(self, progress_bar):
         """Flashes the bootloader to the eMMC memory."""
 
-        # pylint: disable=locally-disabled, fixme
-        # TODO: Wait for '>' instead of just time based.
         self.flash_erase_emmc()
+        self.setup_emmc_flash()
         progress_bar.update(1)
         self.flash_bl2_image_emmc()
         progress_bar.update(1)
@@ -277,38 +276,18 @@ class FlashUtil:
             None
         """
 
-        time.sleep(2)
-        self.__serial_port.write("\rEM_W\r".encode())
+        self.write_serial_cmd("EM_W")
 
-        time.sleep(1)
-        self.__serial_port.write("1\r".encode())
+        self.wait_for_serial_read(")>", print_buffer=self.__args.debug)
+        self.write_serial_cmd("1")
+        self.wait_for_serial_read(":", print_buffer=self.__args.debug)
+        self.write_serial_cmd("100")
+        self.wait_for_serial_read(":", print_buffer=self.__args.debug)
+        self.write_serial_cmd("00000")
 
-        time.sleep(1)
-        self.__serial_port.write("100\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("00000\r".encode())
-
-        time.sleep(2)
+        self.wait_for_serial_read("please send !", print_buffer=self.__args.debug)
         self.write_file_to_serial(self.fip_image)
-
-        time.sleep(2)
-        self.__serial_port.write("\rEM_SECSD\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("B1\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("2\r".encode())
-
-        time.sleep(2)
-        self.__serial_port.write("\rEM_SECSD\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("B3\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("8\r".encode())
+        self.wait_for_serial_read("EM_W Complete!", print_buffer=self.__args.debug)
 
     def flash_bl2_image_emmc(self):
         """
@@ -318,20 +297,18 @@ class FlashUtil:
             None
         """
 
-        time.sleep(1)
-        self.__serial_port.write("\rEM_W\r".encode())
+        self.write_serial_cmd("EM_W")
 
-        time.sleep(1)
-        self.__serial_port.write("1\r".encode())
+        self.wait_for_serial_read(">", print_buffer=self.__args.debug)
+        self.write_serial_cmd("1")
+        self.wait_for_serial_read(":", print_buffer=self.__args.debug)
+        self.write_serial_cmd("1")
+        self.wait_for_serial_read(":", print_buffer=self.__args.debug)
+        self.write_serial_cmd("11E00")
 
-        time.sleep(1)
-        self.__serial_port.write("1\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("11E00\r".encode())
-
-        time.sleep(2)
+        self.wait_for_serial_read("please send !", print_buffer=self.__args.debug)
         self.write_file_to_serial(self.bl2_image)
+        self.wait_for_serial_read("EM_W Complete!", print_buffer=self.__args.debug)
 
     def flash_flash_writer(self):
         """
@@ -343,17 +320,36 @@ class FlashUtil:
         """
 
         self.write_file_to_serial(self.flash_writer_image)
-        time.sleep(1)
+        self.wait_for_serial_read(">", print_buffer=self.__args.debug)
+
+    def setup_emmc_flash(self):
+        """
+        Modify EXT_CSD register of eMMC to enable eMMC boot
+
+        Note
+        ----
+        Prerequisite for eMMC flashing bootloaders.
+        """
+        self.write_serial_cmd("EM_SECSD")
+        self.wait_for_serial_read(":", print_buffer=self.__args.debug)
+        self.write_serial_cmd("b1")
+        self.wait_for_serial_read(":", print_buffer=self.__args.debug)
+        self.write_serial_cmd("2")
+        self.wait_for_serial_read(">", print_buffer=self.__args.debug)
+        self.write_serial_cmd("EM_SECSD")
+        self.wait_for_serial_read(":", print_buffer=self.__args.debug)
+        self.write_serial_cmd("b3")
+        self.wait_for_serial_read(":", print_buffer=self.__args.debug)
+        self.write_serial_cmd("8")
 
     def flash_erase_emmc(self):
         """
         Erases the eMMC flash memory.
         """
-        time.sleep(2)
-        self.__serial_port.write("\rEM_E\r".encode())
-
-        time.sleep(1)
-        self.__serial_port.write("1\r".encode())
+        self.write_serial_cmd("EM_E")
+        self.wait_for_serial_read(">", print_buffer=self.__args.debug)
+        self.write_serial_cmd("1")
+        self.wait_for_serial_read(">", print_buffer=self.__args.debug)
 
     def flash_bootloader_qspi(self, progress_bar):
         """
@@ -435,7 +431,6 @@ class FlashUtil:
         if not os.path.isfile(self.rootfs_image):
             die(f"Missing system image: {self.rootfs_image}")
 
-        # Extract ADB tools
         self.__extract_adb()
 
         print("Power on board. Make sure boot2 strap is NOT on.")
@@ -445,7 +440,6 @@ class FlashUtil:
         self.__serial_port.read_until("Hit any key to stop autoboot:".encode())
         self.write_serial_cmd("y")
 
-        # Wait a bit
         time.sleep(1)
 
         # Set static ip or attempt to get ip from dhcp
