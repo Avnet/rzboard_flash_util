@@ -228,9 +228,10 @@ def test_flashing_emmc_bootloader(
     assert "100%" in output.err
 
     mock_serial_port.assert_called_once_with(port=DEFAULT_SERIAL_PORT, baudrate=DEFAULT_BAUD_RATE)
-    mock_serial_port.return_value.write.assert_any_call("\rEM_E\r".encode())
-    mock_serial_port.return_value.write.assert_any_call("\rEM_W\r".encode())
-    mock_serial_port.return_value.write.assert_any_call("\rEM_SECSD\r".encode())
+    mock_serial_port.return_value.write.assert_any_call("EM_E\r".encode())
+    mock_serial_port.return_value.write.assert_any_call("EM_SECSD\r".encode())
+    mock_serial_port.return_value.write.assert_any_call("EM_W\r".encode())
+    mock_serial_port.return_value.read_until.assert_any_call(">".encode())
 
     mock_file_write.assert_has_calls(
         [call(str(flash_writer_image)), call(str(bl2_image)), call(str(fip_image))]
@@ -270,6 +271,7 @@ def test_flashing_qspi_bootloader(
 
     # assert QSPI Being written to
     mock_serial_port.return_value.write.assert_any_call("XLS2\r".encode())
+    mock_serial_port.return_value.read_until.assert_any_call(">".encode())
 
     mock_file_write.assert_has_calls(
         [call(str(flash_writer_image)), call(str(bl2_image)), call(str(fip_image))]
