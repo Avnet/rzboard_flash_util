@@ -31,8 +31,8 @@ The script has a couple dependencies that can be installed by running the follow
 cd rzboard_flash_util
 pip3 install -r requirements.txt
 ```
-
 ## Usage
+
 > [!TIP]
 > Running `./flash_rzboard.py -h` will print usage information.  A more detailed description of the arguments is detailed below.
 
