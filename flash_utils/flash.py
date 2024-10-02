@@ -220,15 +220,14 @@ class FlashUtil:
 
     # Setup Serial Port
     def __setup_serial_port(self):
-        # pylint: disable=locally-disabled, bare-except
         try:
             self.__serial_port = serial.Serial(
                 port=self.__args.serialPort, baudrate=self.__args.baudRate
             )
-        except:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             die(
                 msg=(
-                    "Unable to open serial port. "
+                    f"Unable to open serial port. Error: {e}\n"
                     "Do you have sufficient permissions? Is your device connected?"
                 )
             )
@@ -524,9 +523,9 @@ class FlashUtil:
 
     # Function to check and extract adb
     def __extract_adb(self):
+        archive_path = ""
         # Extract platform tools if not already extracted
         if not os.path.exists(f"{self.__script_dir}/platform-tools"):
-            archive_path = ""
             if sys.platform == "linux":
                 archive_path = f"{self.__script_dir}/adb/platform-tools-latest-linux.zip"
             elif sys.platform == "darwin":
