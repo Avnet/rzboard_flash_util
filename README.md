@@ -36,6 +36,11 @@ pip3 install -r requirements.txt
 > [!TIP]
 > Running `./flash_rzboard.py -h` will print usage information.  A more detailed description of the arguments is detailed below.
 
+> [!TIP]
+> Flashing the **bootloaders** will require SCIF download mode. See the RZBoard Yocto Build guide, or the following reminder below on how to configure BOOT switches for flashing **eMMC**. QSPI flashing (for SD card use) requires a different BOOT switch configuration. Remember to turn your RZBoard off before entering SCIF download mode.
+> ![image](https://github.com/user-attachments/assets/f064083c-53fd-4f5c-a565-0dc6c6af83fc)
+
+
 ### Specifying What to Flash
 
 The utility can be used to flash the bootloader, rootfs, or both at the same time:
