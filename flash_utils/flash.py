@@ -536,7 +536,7 @@ class FlashUtil:
                 die("Unknown platform.")
 
         if not os.path.isfile(archive_path):
-            die("Can't find adb for your system.")
+            die("Can't find adb for your system. This util expects to be ran from the flash_rzboard.py dir.")
 
         with zipfile.ZipFile(archive_path, "r") as zip_ref:
             zip_ref.extractall(f"{self.__script_dir}/adb")
