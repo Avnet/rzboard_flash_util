@@ -20,10 +20,12 @@ CORE_IMAGE_FILE_DEFAULT = "avnet-core-image-rzboard.wic"
 
 class FlashUtil:
     """
-    A utility class for flashing an Avnet RZBoard with a bootloader and/or rootfs image.
+    A utility class for flashing an Avnet RZBoard with a bootloader
+    and/or rootfs image.
 
     Usage:
-    - Instantiate the class to parse command line arguments and flash the specified image(s).
+    - Instantiate the class to parse command line arguments and flash
+      the specified image(s).
     """
 
     # pylint: disable=too-many-instance-attributes
@@ -536,7 +538,8 @@ class FlashUtil:
                 die("Unknown platform.")
 
         if not os.path.isfile(archive_path):
-            die("Can't find adb for your system. This util expects to be ran from the flash_rzboard.py dir.")
+            die("Can't find adb for your system. \
+                This util expects to be ran from the flash_rzboard.py dir.")
 
         with zipfile.ZipFile(archive_path, "r") as zip_ref:
             zip_ref.extractall(f"{self.__script_dir}/adb")
