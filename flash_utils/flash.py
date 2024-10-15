@@ -31,7 +31,9 @@ class FlashUtil:
     # pylint: disable=too-many-instance-attributes
     # reasonable number of instance variables given the files we need to flash
     def __init__(self):
-        self.__script_dir = os.getcwd()
+        # Get the absolute path to the main script,
+        # that way you can call flash_rzboard.py from anywhere
+        self.__script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
         self.flash_writer_image = f"{self.__script_dir}/{FLASH_WRITER_FILE_DEFAULT}"
         self.bl2_image = f"{self.__script_dir}/{BL2_FILE_DEFAULT}"
