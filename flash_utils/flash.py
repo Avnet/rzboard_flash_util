@@ -12,6 +12,8 @@ from subprocess import PIPE, Popen
 import serial
 from tqdm import tqdm
 
+from . import __version__
+
 FLASH_WRITER_FILE_DEFAULT = "Flash_Writer_SCIF_rzboard.mot"
 BL2_FILE_DEFAULT = "bl2_bp-rzboard.srec"
 FIP_FILE_DEFAULT = "fip-rzboard.srec"
@@ -60,7 +62,7 @@ class FlashUtil:
             self.write_system_image()
         else:
             argparser.error(
-                "Please specify which image(s) to flash.\n\nExamples:\n\t"
+                f"Please specify which image(s) to flash.\n\nv{__version__} Examples:\n\t"
                 "\n\tUsing default path of files in flash_rzboard.py dir\n\t"
                 "./flash_util.py --bootloader\n\t"
                 "./flash_util.py --bootloader --qspi\n\t"
@@ -213,8 +215,13 @@ class FlashUtil:
             help="Flash to QSPI (default is eMMC).",
         )
 
+        # Debug / help
         argparser.add_argument(
             "--debug", action="store_true", help="Enable debug output (buffer printing)"
+        )
+        argparser.add_argument(
+            "--version", "-v", action="version",
+            help="Show version.", version=f"%(prog)s {__version__},"
         )
 
         self.__args = argparser.parse_args()
